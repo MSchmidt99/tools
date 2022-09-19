@@ -34,6 +34,7 @@ class optimizeableSklearnCVWrapper:
         self.verbose            = verbose
         self.bounds_dtypes      = bounds_dtypes
         self.best_score         = 0
+        self.penalize_instability = penalize_instability
 
     # Helper which returns the model_crossval input parameters as seen by tuned_model
     # (fancy way to say it applies the dtype functions passed in the bounds dict to the values input)
@@ -75,7 +76,7 @@ class optimizeableSklearnCVWrapper:
             print("Time elapsed: {0}".format(timedelta(seconds=timer() - start_time)))
         
         mean_cv_score = np.mean(model_cv['test_score'])
-        if penalize_instability:
+        if self.penalize_instability:
             mean_cv_score -= np.std(model_cv['test_score'])
         if mean_cv_score > self.best_score:
             self.best_score = mean_cv_score
