@@ -6,7 +6,7 @@ from sklearn.metrics import accuracy_score
 from bayes_opt import BayesianOptimization
 
 class optimizeableSklearnCVWrapper:
-    def __init__(self, model, bounds, cv, error_metric="accuracy", additional_params=None, n_jobs=1, verbose=0):
+    def __init__(self, model, bounds, cv, error_metric="accuracy", penalize_instability=False, additional_params=None, n_jobs=1, verbose=0):
         """
         model: the input model for which the parameter bounds correspond to.
         bounds: dict of { 'parameter' : ( lower, upper, dtype (optional) ) } (datatype must be a function which can be applied).
@@ -34,6 +34,7 @@ class optimizeableSklearnCVWrapper:
         self.verbose            = verbose
         self.bounds_dtypes      = bounds_dtypes
         self.best_score         = 0
+        self.penalize_instability = penalize_instability
 
     # Helper which returns the model_crossval input parameters as seen by tuned_model
     # (fancy way to say it applies the dtype functions passed in the bounds dict to the values input)
@@ -75,6 +76,8 @@ class optimizeableSklearnCVWrapper:
             print("Time elapsed: {0}".format(timedelta(seconds=timer() - start_time)))
         
         mean_cv_score = np.mean(model_cv['test_score'])
+        if self.penalize_instability:
+            mean_cv_score -= np.std(model_cv['test_score'])
         if mean_cv_score > self.best_score:
             self.best_score = mean_cv_score
             self.best_model_cv = model_cv
