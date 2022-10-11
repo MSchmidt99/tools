@@ -6,18 +6,19 @@ from sklearn.metrics import accuracy_score
 from bayes_opt import BayesianOptimization
 
 class optimizeableSklearnCVWrapper:
-    def __init__(self, model, bounds, cv, error_metric="accuracy", penalize_instability=False, additional_params=None, n_jobs=1, verbose=0):
+    def __init__(self, model, bounds, cv, error_metric="accuracy", penalize_instability=False, additional_params=None, cv_jobs=None, model_jobs=None, verbose=0):
         """
         model: the input model for which the parameter bounds correspond to.
+            Must be compatible with sklearn cross_validate, if not then write a wrapper.
         bounds: dict of { 'parameter' : ( lower, upper, dtype (optional) ) } (datatype must be a function which can be applied).
-                      datatype does not have to be a datatype, functions such as math.exp or a category selection helper 
-                      will also work so long as it only has one input parameter and a transformed output. Bayes_opt will
-                      sample within the range enclosed between the first two parameters (exclusive of the upper bound,
-                      inclusive of the lower bound).
+            datatype does not have to be a datatype, functions such as math.exp or a category selection helper 
+            will also work so long as it only has one input parameter and a transformed output. Bayes_opt will
+            sample within the range enclosed between the first two parameters (exclusive of the upper bound,
+            inclusive of the lower bound).
         cv: the cross-validation value or function to use (must be pre-tuned if function).
 
         Note: cross_validate will return nan if the model errors, which will typically correspond to a parameter input
-                      out of bounds error.
+            out of bounds error.
         """
         bounds_dtypes = {}
         for key, value in bounds.items():
@@ -30,7 +31,8 @@ class optimizeableSklearnCVWrapper:
         self.cv                 = cv
         self.error_metric       = error_metric
         self.additional_params  = additional_params
-        self.n_jobs             = n_jobs
+        self.cv_jobs            = cv_jobs
+        self.model_jobs         = model_jobs
         self.verbose            = verbose
         self.bounds_dtypes      = bounds_dtypes
         self.best_score         = 0
@@ -58,7 +60,7 @@ class optimizeableSklearnCVWrapper:
         tuned_model = self.model(
             **kwargs, # unpack bounds passed by BayesianOptimization into model 
             # (**{'max_depth' : 20} -> max_depth=20). Will error if param passed does not exist.
-            n_jobs=self.n_jobs
+            **({'n_jobs': self.model_jobs} if self.model_jobs is not None else {})
         )
 
         model_cv = cross_validate(
@@ -67,7 +69,7 @@ class optimizeableSklearnCVWrapper:
             self.y,
             scoring=self.error_metric, 
             cv=self.cv,
-            n_jobs=1, # self.n_jobs used in model rather than cv to reduce memory allocation.
+            n_jobs=self.cv_jobs,
             return_train_score=True,
             return_estimator=True
         )
@@ -96,7 +98,7 @@ class optimizeableSklearnCVWrapper:
     # init_points: the number of points randomly sampled within the bounds for the optimizer to start with.
     # n_iter: the number of optimization iterations to complete before selecting the best parameters and stopping
     #         the optimization
-    def fit(self, X, y, init_points=1, n_iter=25):
+    def fit(self, X, y, init_points=5, n_iter=15):
         self.X = X
         self.y = y
         
