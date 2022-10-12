@@ -3,6 +3,10 @@ import pandas as pd
 from sklearn.utils import indexable
 from sklearn.utils.validation import _num_samples
 
+"""
+See https://github.com/scikit-learn/scikit-learn/pull/24589 for more up-to-date version.
+"""
+
 class RollingWindowCV: # (_BaseKFold)
     """ 
     A variant of TimeSeriesSplit which yields equally sized rolling batches, which
