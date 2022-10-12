@@ -45,7 +45,8 @@ def get_opt_wrapper(cv, n_jobs=1):
         params,
         cv,
         verbose=2,
-        n_jobs=n_jobs,
+        cv_jobs=1, # 1 cv job to reduce memory allocation
+        model_jobs=n_jobs,
         additional_params=xgb_params,
         cuda_params=cuda_params,
     )
